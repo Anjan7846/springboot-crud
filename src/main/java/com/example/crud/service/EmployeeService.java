@@ -4,6 +4,9 @@ import com.example.crud.dto.EmployeeDTO;
 import com.example.crud.exception.ResourceNotFoundException;
 import com.example.crud.model.Employee;
 import com.example.crud.repository.EmployeeRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,41 +21,44 @@ public class EmployeeService {
         this.repository = repository;
     }
 
+    @Cacheable(value = "employees")  // ✅ caches the list of employees
     public List<Employee> getAllEmployees() {
+        System.out.println("Fetching all employees from DB...");
         return repository.findAll();
     }
 
+    @Cacheable(value = "employee", key = "#id")  // ✅ caches individual employee
     public Employee getEmployeeById(Long id) {
+        System.out.println("Fetching employee from DB...");
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + id));
     }
 
     @Transactional
+    @CacheEvict(value = {"employees"}, allEntries = true) // ✅ clear employee list cache
     public Employee createEmployee(EmployeeDTO employeeDTO) {
         validateEmployee(employeeDTO);
-
         Employee emp = new Employee();
         emp.setName(employeeDTO.getName());
         emp.setDepartment(employeeDTO.getDepartment());
         emp.setSalary(calculateNetSalary(employeeDTO.getSalary(), employeeDTO.getDepartment()));
-
         return repository.save(emp);
     }
 
     @Transactional
+    @CachePut(value = "employee", key = "#id")  // ✅ update cache for the specific employee
+    @CacheEvict(value = {"employees"}, allEntries = true)
     public Employee updateEmployee(Long id, EmployeeDTO employeeDTO) {
         validateEmployee(employeeDTO);
-
         Employee emp = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + id));
-
         emp.setName(employeeDTO.getName());
         emp.setDepartment(employeeDTO.getDepartment());
         emp.setSalary(calculateNetSalary(employeeDTO.getSalary(), employeeDTO.getDepartment()));
-
         return repository.save(emp);
     }
 
+    @CacheEvict(value = {"employee", "employees"}, allEntries = true)
     public void deleteEmployee(Long id) {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("Employee not found with ID: " + id);
@@ -60,10 +66,6 @@ public class EmployeeService {
         repository.deleteById(id);
     }
 
-    /**
-     * Complex business logic:
-     * Calculates final salary based on department and bonus/tax rules.
-     */
     private double calculateNetSalary(double baseSalary, String department) {
         double bonusPercentage = switch (department.toLowerCase()) {
             case "engineering" -> 0.15;
@@ -71,18 +73,11 @@ public class EmployeeService {
             case "sales" -> 0.20;
             default -> 0.05;
         };
-
-        double tax = baseSalary * 0.10;  // 10% tax
+        double tax = baseSalary * 0.10;
         double bonus = baseSalary * bonusPercentage;
-        double netSalary = baseSalary + bonus - tax;
-
-        if (netSalary < 0) throw new IllegalArgumentException("Invalid salary calculation result.");
-        return netSalary;
+        return baseSalary + bonus - tax;
     }
 
-    /**
-     * Validate employee data before processing.
-     */
     private void validateEmployee(EmployeeDTO employeeDTO) {
         if (employeeDTO.getName() == null || employeeDTO.getName().isBlank()) {
             throw new IllegalArgumentException("Employee name cannot be empty");
@@ -92,10 +87,9 @@ public class EmployeeService {
         }
     }
 
-    /**
-     * Get employees earning above a certain threshold (business reporting logic)
-     */
+    @Cacheable(value = "highEarners", key = "#minSalary")  // ✅ cache high earners
     public List<Employee> getHighEarners(double minSalary) {
+        System.out.println("Fetching high earners from DB...");
         return repository.findAll().stream()
                 .filter(emp -> emp.getSalary() > minSalary)
                 .collect(Collectors.toList());
