@@ -1,8 +1,10 @@
 package com.example.crud.controller;
 
+import com.example.crud.dto.EmployeeDTO;
 import com.example.crud.model.Employee;
 import com.example.crud.service.EmployeeService;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -25,19 +27,23 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public Employee createEmployee(@RequestBody Employee employee) {
-        Employee savedEmployee = service.createEmployee(employee);
-        System.out.println("✅ New employee created successfully: " + savedEmployee.getName());
-        return savedEmployee;
+    public Employee createEmployee(@RequestBody EmployeeDTO employeeDTO) {
+        return service.createEmployee(employeeDTO);
     }
 
     @PutMapping("/{id}")
-    public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
-        return service.updateEmployee(id, employee);
+    public Employee updateEmployee(@PathVariable Long id, @RequestBody EmployeeDTO employeeDTO) {
+        return service.updateEmployee(id, employeeDTO);
     }
 
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable Long id) {
         service.deleteEmployee(id);
+    }
+
+    // New business endpoint: get employees earning above threshold
+    @GetMapping("/high-earners")
+    public List<Employee> getHighEarners(@RequestParam double minSalary) {
+        return service.getHighEarners(minSalary);
     }
 }
