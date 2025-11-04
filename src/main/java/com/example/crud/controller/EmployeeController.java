@@ -26,7 +26,9 @@ public class EmployeeController {
 
     @PostMapping
     public Employee createEmployee(@RequestBody Employee employee) {
-        return service.createEmployee(employee);
+        Employee savedEmployee = service.createEmployee(employee);
+        System.out.println("✅ New employee created successfully: " + savedEmployee.getName());
+        return savedEmployee;
     }
 
     @PutMapping("/{id}")
