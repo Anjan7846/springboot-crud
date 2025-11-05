@@ -1,8 +1,9 @@
-package com.example.crud.controller;
+package com.example.banking.controller;
 
-import com.example.crud.dto.EmployeeDTO;
-import com.example.crud.model.Employee;
-import com.example.crud.service.EmployeeService;
+import com.example.banking.model.Employee;
+import com.example.banking.service.EmployeeService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -10,10 +11,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employees")
 public class EmployeeController {
+
     private final EmployeeService service;
 
     public EmployeeController(EmployeeService service) {
         this.service = service;
+    }
+
+    @PostMapping
+    public ResponseEntity<Employee> createEmployee(@Valid @RequestBody Employee employee) {
+        return ResponseEntity.ok(service.createEmployee(employee));
     }
 
     @GetMapping
@@ -22,28 +29,20 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
-    public Employee getEmployeeById(@PathVariable Long id) {
-        return service.getEmployeeById(id);
-    }
-
-    @PostMapping
-    public Employee createEmployee(@RequestBody EmployeeDTO employeeDTO) {
-        return service.createEmployee(employeeDTO);
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getEmployeeById(id));
     }
 
     @PutMapping("/{id}")
-    public Employee updateEmployee(@PathVariable Long id, @RequestBody EmployeeDTO employeeDTO) {
-        return service.updateEmployee(id, employeeDTO);
+    public ResponseEntity<Employee> updateEmployee(
+            @PathVariable Long id,
+            @Valid @RequestBody Employee employee) {
+        return ResponseEntity.ok(service.updateEmployee(id, employee));
     }
 
     @DeleteMapping("/{id}")
-    public void deleteEmployee(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
         service.deleteEmployee(id);
-    }
-
-    // New business endpoint: get employees earning above threshold
-    @GetMapping("/high-earners")
-    public List<Employee> getHighEarners(@RequestParam double minSalary) {
-        return service.getHighEarners(minSalary);
+        return ResponseEntity.noContent().build();
     }
 }
